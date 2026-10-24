@@ -739,6 +739,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * open it again. Nothing to do when the TV has no inputs to list (the pill is hidden then).
      * top_menu hides the pill, so the list hangs under the gear there, as in showInputs().
      */
+    private boolean inputsPending;
+
+    /** Opens the Inputs menu that openInputsIfAsked() held back until this window has focus. */
+    private void showPendingInputs() {
+        if (!inputsPending) return;
+        inputsPending = false;
+        View anchor = topMenu ? findViewById(R.id.btnSettings) : btnInputs;
+        if (anchor.getVisibility() != View.VISIBLE || openPopup != null) return;
+        anchor.requestFocus();
+        showInputs();
+    }
+
     private boolean openInputsIfAsked(Intent intent) {
         if (intent == null || !ACTION_VIEW_INPUTS.equals(intent.getAction())) return false;
         setIntent(new Intent(Intent.ACTION_MAIN));
@@ -746,7 +758,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (anchor.getVisibility() != View.VISIBLE) return true;
         if (anchor.isLaidOut()) {
             anchor.requestFocus();
-            showInputs();
+            // Home already in front: InputsRequestActivity was on top a moment ago, so this window may not have
+            // focus yet and a popup opened now is dropped (#1053). Wait for the focus instead.
+            if (hasWindowFocus()) showInputs();
+            else inputsPending = true;
             return true;
         }
         // Cold start: the popup anchors to the pill (or the gear), so wait for the first layout.
@@ -1076,6 +1091,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
         if (hasFocus) {
+            if (inputsPending) root.post(this::showPendingInputs);
             startPendingSettingsReorder();
             if (libraryFocusPending && appLibrary == null) focusLibrary();
             showCardPrompt();
