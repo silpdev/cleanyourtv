@@ -1051,6 +1051,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // Nothing of ours stays on screen over another app; an undecided prompt simply returns next time.
         if (cardPrompt != null) cardPrompt.dismiss();
         if (appLibrary != null) appLibrary.close();
+        inputsPending = false;   // a request that lost the race must not pop the menu later
         if (openPopup != null) openPopup.dismiss();
     }
 
